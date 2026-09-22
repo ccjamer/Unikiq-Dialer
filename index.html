@@ -453,11 +453,12 @@
     const meetings = items.filter(a => a.status === 'Møde Booket' || a.status === 'Lukket Ordre').length;
     const offers = items.filter(a => a.status === 'Send Info' || a.status === 'Sendt tilbud').length;
     const callbacks = items.filter(a => a.status === 'Ring Igen').length;
+    const uncalled = items.filter(a => a.status === 'Ikke ringet' || !a.status).length;
 
     document.getElementById('countMeetings').textContent = meetings;
     document.getElementById('countOffers').textContent = offers;
     document.getElementById('countCallbacks').textContent = callbacks;
-    document.getElementById('countTotal').textContent = items.length;
+    document.getElementById('countUncalled').textContent = uncalled;
   }
 
   function filterAppointments(type, btn) {
@@ -477,13 +478,17 @@
 
   function renderAppointments(items) {
     const list = document.getElementById('appointmentsList');
-    if (!items || items.length === 0) {
+    
+    // Skjul 'Ikke ringet' emner fra selve aftalelisten
+    const activeItems = (items || []).filter(a => a.status !== 'Ikke ringet' && a.status);
+
+    if (!activeItems || activeItems.length === 0) {
       list.innerHTML = '<p style="color:#94a3b8;">Ingen emner i denne kategori for den valgte kampagne.</p>';
       return;
     }
     list.innerHTML = '';
 
-    items.forEach(item => {
+    activeItems.forEach(item => {
       const rawTime = item.booked_for || item.callback_at || item.appointment_date;
       let formattedDate = 'Ingen dato angivet';
       if (rawTime) {
