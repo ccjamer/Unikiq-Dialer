@@ -113,6 +113,17 @@
     <label style="font-size:12px; color:#94a3b8; font-weight:bold;">OPFØLGNINGSDATO & TID</label>
     <input type="datetime-local" id="appointmentTime">
 
+    <!-- MÆGLER DROPDOWN (Kun ved 'Møde Booket') -->
+    <div id="brokerFields" style="display:none; margin-top:12px;">
+      <label style="font-size:12px; color:#22c55e; font-weight:bold; display:block; margin-bottom:2px;">VÆLG MÆGLER / KONSULENT</label>
+      <select id="brokerSelect">
+        <option value="Christina">Christina</option>
+        <option value="Martin">Martin</option>
+        <option value="Joachim">Joachim</option>
+      </select>
+    </div>
+
+    <!-- E-MAIL FELTER (Kun ved 'Send Info') -->
     <div id="emailFields" style="display:none; margin-top:12px;">
       <label style="font-size:12px; color:#38bdf8; font-weight:bold;">MODTAGER E-MAIL (KLADDE)</label>
       <input type="email" id="recipientEmail" placeholder="f.eks. kontakt@firma.dk">
@@ -216,11 +227,16 @@
   function openDateModal(status) {
     if (!currentLead) { alert("Intet aktivt lead at gemme for."); return; }
     selectedStatus = status;
+    
     const emailFields = document.getElementById('emailFields');
+    const brokerFields = document.getElementById('brokerFields');
+    
     emailFields.style.display = 'none';
+    if (brokerFields) brokerFields.style.display = 'none';
 
     if (status === 'Møde Booket') {
-      document.getElementById('modalTitle').textContent = '🎉 Vælg mødetidspunkt';
+      document.getElementById('modalTitle').textContent = '🎉 Vælg mødetidspunkt & mægler';
+      if (brokerFields) brokerFields.style.display = 'block';
     } else if (status === 'Send Info') {
       document.getElementById('modalTitle').textContent = '✉️ Send Tilbud & Vælg Opfølgning';
       emailFields.style.display = 'block';
@@ -239,6 +255,11 @@
     const datetime = document.getElementById('appointmentTime').value;
     if (!datetime) { alert('Vælg venligst en dato og tid!'); return; }
     
+    const brokerSelect = document.getElementById('brokerSelect');
+    const selectedBroker = brokerSelect ? brokerSelect.value : '';
+    const currentNotes = document.getElementById('callNotes').value;
+    const campaignId = document.getElementById('campaignSelect').value;
+
     if (selectedStatus === 'Send Info') {
       const email = document.getElementById('recipientEmail').value;
       const contact = document.getElementById('recipientContact').value;
@@ -252,10 +273,32 @@
             email: email,
             company_name: currentLead ? currentLead.company_name : '',
             contact_person: contact,
-            campaign_id: document.getElementById('campaignSelect').value
+            campaign_id: campaignId,
+            status: selectedStatus,
+            appointment_date: datetime,
+            notes: currentNotes,
+            broker: selectedBroker
           })
         });
       } catch(e) { console.error("Kunne ikke oprette kladde:", e); }
+
+    } else if (selectedStatus === 'Møde Booket') {
+      try {
+        fetch(WEBHOOK_CREATE_DRAFT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: currentLead ? currentLead.email : '',
+            company_name: currentLead ? currentLead.company_name : '',
+            contact_person: currentLead ? currentLead.contact_person : '',
+            campaign_id: campaignId,
+            status: selectedStatus,
+            appointment_date: datetime,
+            notes: currentNotes,
+            broker: selectedBroker
+          })
+        });
+      } catch(e) { console.error("Fejl ved afsendelse af møde-webhook:", e); }
     }
 
     closeModal();
