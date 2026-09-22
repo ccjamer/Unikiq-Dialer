@@ -429,15 +429,26 @@
   }
 
   function updateCounters(items) {
-    if (!Array.isArray(items)) return;
+    if (!Array.isArray(items) || items.length === 0) {
+      document.getElementById('countMeetings').textContent = '0';
+      document.getElementById('countOffers').textContent = '0';
+      document.getElementById('countCallbacks').textContent = '0';
+      document.getElementById('countUncalled').textContent = '0';
+      return;
+    }
 
     const meetings = items.filter(a => a.status === 'Møde Booket' || a.status === 'Lukket Ordre').length;
     const offers = items.filter(a => a.status === 'Send Info' || a.status === 'Sendt tilbud').length;
     const callbacks = items.filter(a => a.status === 'Ring Igen').length;
 
-    // Tæller de ubehandlede emner (alt der enten er 'Ikke ringet', tomt eller udefineret)
+    // Henter ubehandlede direkte fra SQL-queryens uncalled_count eller tæller lokale
+    const firstItem = items[0];
+    const uncalledFromSql = firstItem ? firstItem.uncalled_count : undefined;
+    
     const handledStatuses = ['Møde Booket', 'Lukket Ordre', 'Send Info', 'Sendt tilbud', 'Ring Igen', 'Svarede Ikke', 'Ikke Interesseret'];
-    const uncalled = items.filter(a => !a.status || a.status === 'Ikke ringet' || a.status.trim() === '' || !handledStatuses.includes(a.status)).length;
+    const uncalled = (uncalledFromSql !== undefined) 
+      ? uncalledFromSql 
+      : items.filter(a => !a.status || a.status === 'Ikke ringet' || a.status.trim() === '' || !handledStatuses.includes(a.status)).length;
 
     document.getElementById('countMeetings').textContent = meetings;
     document.getElementById('countOffers').textContent = offers;
