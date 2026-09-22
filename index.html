@@ -37,7 +37,7 @@
     select, textarea, input { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; margin-top: 5px; }
     
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000; }
-    .modal-content { background: #1e293b; padding: 24px; border-radius: 12px; width: 90%; max-width: 400px; }
+    .modal-content { background: #1e293b; padding: 24px; border-radius: 12px; width: 90%; max-width: 420px; }
     
     .appointment-item { background: #0f172a; border: 1px solid #334155; padding: 14px; border-radius: 8px; margin-bottom: 10px; }
     .appointment-date { font-weight: bold; font-size: 14px; margin-bottom: 4px; }
@@ -105,11 +105,22 @@
   </div>
 </div>
 
-<!-- DATE/TIME MODAL -->
+<!-- DATE/TIME & EMAIL MODAL -->
 <div class="modal" id="dateModal">
   <div class="modal-content">
     <h3 id="modalTitle" style="margin-top:0;">Vælg dato og tidspunkt</h3>
+    
+    <label style="font-size:12px; color:#94a3b8; font-weight:bold;">OPFØLGNINGSDATO & TID</label>
     <input type="datetime-local" id="appointmentTime">
+
+    <div id="emailFields" style="display:none; margin-top:12px;">
+      <label style="font-size:12px; color:#38bdf8; font-weight:bold;">MODTAGER E-MAIL (KLADDE)</label>
+      <input type="email" id="recipientEmail" placeholder="f.eks. kontakt@firma.dk">
+
+      <label style="font-size:12px; color:#94a3b8; font-weight:bold; margin-top:8px; display:block;">KONTAKTPERSON</label>
+      <input type="text" id="recipientContact" placeholder="Navn på modtager">
+    </div>
+
     <div class="btn-group" style="margin-top:20px;">
       <button class="btn" style="background:#475569; color:white;" onclick="closeModal()">Annuller</button>
       <button class="btn btn-call" onclick="confirmAppointment()">Gem Aftale</button>
@@ -122,6 +133,9 @@
   const WEBHOOK_GET_LEAD = 'https://n8n.unikiq.dk/webhook/dialer-get-lead';
   const WEBHOOK_SAVE_RESULT = 'https://n8n.unikiq.dk/webhook/dialer-save-result';
   const WEBHOOK_GET_APPOINTMENTS = 'https://n8n.unikiq.dk/webhook/dialer-get-appointments';
+  
+  // DIT GMAIL WORKFLOW WEBHOOK:
+  const WEBHOOK_CREATE_DRAFT = 'https://n8n.unikiq.dk/webhook/unikiqsalgsassistent'; 
 
   let currentLead = null;
   let selectedStatus = '';
@@ -196,10 +210,15 @@
 
   function openDateModal(status) {
     selectedStatus = status;
+    const emailFields = document.getElementById('emailFields');
+    emailFields.style.display = 'none';
+
     if (status === 'Møde Booket') {
       document.getElementById('modalTitle').textContent = '🎉 Vælg mødetidspunkt';
     } else if (status === 'Send Info') {
-      document.getElementById('modalTitle').textContent = '✉️ Vælg opfølgningsdato for tilbud';
+      document.getElementById('modalTitle').textContent = '✉️ Send Tilbud & Vælg Opfølgning';
+      emailFields.style.display = 'block';
+      document.getElementById('recipientContact').value = currentLead ? (currentLead.contact_person || '') : '';
     } else {
       document.getElementById('modalTitle').textContent = '📅 Vælg tilbageringningstidspunkt';
     }
@@ -213,6 +232,26 @@
   async function confirmAppointment() {
     const datetime = document.getElementById('appointmentTime').value;
     if (!datetime) { alert('Vælg venligst en dato og tid!'); return; }
+    
+    if (selectedStatus === 'Send Info') {
+      const email = document.getElementById('recipientEmail').value;
+      const contact = document.getElementById('recipientContact').value;
+      if (!email) { alert('Tast venligst modtagerens e-mail!'); return; }
+
+      try {
+        fetch(WEBHOOK_CREATE_DRAFT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: email,
+            company_name: currentLead ? currentLead.company_name : '',
+            contact_person: contact,
+            campaign_id: document.getElementById('campaignSelect').value
+          })
+        });
+      } catch(e) { console.error("Kunne ikke oprette kladde", e); }
+    }
+
     closeModal();
     await submitResult(selectedStatus, datetime);
   }
@@ -258,7 +297,6 @@
       const res = await fetch(`${WEBHOOK_GET_APPOINTMENTS}?campaign_id=${campaignId}`);
       allAppointments = await res.json();
       
-      // Nulstil aktiv underfane-knap til "Alle Aftaler"
       const subTabBtns = document.querySelectorAll('.sub-tab-btn');
       subTabBtns.forEach(b => b.classList.remove('active'));
       if(subTabBtns[0]) subTabBtns[0].classList.add('active');
@@ -302,14 +340,14 @@
       }
 
       let tagText = '📅 RING IGEN';
-      let tagColor = '#eab308'; // Gul
+      let tagColor = '#eab308';
 
       if (item.status === 'Møde Booket') {
         tagText = '🎉 MØDE';
-        tagColor = '#22c55e'; // Grøn
+        tagColor = '#22c55e';
       } else if (item.status === 'Send Info' || item.status === 'Sendt tilbud') {
         tagText = '✉️ TILBUD / OPFØLGNING';
-        tagColor = '#38bdf8'; // Blå
+        tagColor = '#38bdf8';
       }
 
       const div = document.createElement('div');
