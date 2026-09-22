@@ -266,6 +266,9 @@
     if (!currentLead) return;
     const notes = document.getElementById('callNotes').value;
     
+    // Rens datoen så vi altid sender en tom streng fremfor 'null' eller 'undefined'
+    const cleanDate = (dateVal && dateVal !== 'null' && dateVal !== 'undefined') ? dateVal : '';
+
     try {
       await fetch(WEBHOOK_SAVE_RESULT, {
         method: 'POST',
@@ -274,7 +277,7 @@
           lead_id: currentLead.id,
           status: status,
           notes: notes,
-          appointment_date: dateVal
+          appointment_date: cleanDate
         })
       });
     } catch(e) {
