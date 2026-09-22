@@ -259,7 +259,7 @@
     if (type === 'moede') {
       renderAppointments(allAppointments.filter(a => a.status === 'Møde Booket'));
     } else if (type === 'tilbud') {
-      renderAppointments(allAppointments.filter(a => a.status === 'Send Info'));
+      renderAppointments(allAppointments.filter(a => a.status === 'Send Info' || a.status === 'Sendt tilbud'));
     } else if (type === 'ring') {
       renderAppointments(allAppointments.filter(a => a.status === 'Ring Igen'));
     } else {
@@ -287,13 +287,20 @@
       }
 
       let tagText = '📅 RING IGEN';
-      if (item.status === 'Møde Booket') tagText = '🎉 MØDE';
-      if (item.status === 'Send Info') tagText = '✉️ TILBUD / OPFØLGNING';
+      let tagColor = '#eab308'; // Gul
+
+      if (item.status === 'Møde Booket') {
+        tagText = '🎉 MØDE';
+        tagColor = '#22c55e'; // Grøn
+      } else if (item.status === 'Send Info' || item.status === 'Sendt tilbud') {
+        tagText = '✉️ TILBUD / OPFØLGNING';
+        tagColor = '#38bdf8'; // Blå
+      }
 
       const div = document.createElement('div');
       div.className = 'appointment-item';
       div.innerHTML = `
-        <div class="appointment-date">${tagText}: ${formattedDate}</div>
+        <div class="appointment-date" style="color:${tagColor};">${tagText}: ${formattedDate}</div>
         <strong style="font-size:16px;">${item.company_name}</strong> ${item.contact_person ? '(' + item.contact_person + ')' : ''}<br>
         <span style="color:#4ade80;">📞 ${item.phone}</span><br>
         <small style="color:#cbd5e1;">Noter: ${item.notes || 'Ingen noter'}</small>
