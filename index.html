@@ -430,11 +430,14 @@
 
   function updateCounters(items) {
     if (!Array.isArray(items)) return;
-    
+
     const meetings = items.filter(a => a.status === 'Møde Booket' || a.status === 'Lukket Ordre').length;
     const offers = items.filter(a => a.status === 'Send Info' || a.status === 'Sendt tilbud').length;
     const callbacks = items.filter(a => a.status === 'Ring Igen').length;
-    const uncalled = items.filter(a => a.status === 'Ikke ringet').length;
+
+    // Tæller de ubehandlede emner (alt der enten er 'Ikke ringet', tomt eller udefineret)
+    const handledStatuses = ['Møde Booket', 'Lukket Ordre', 'Send Info', 'Sendt tilbud', 'Ring Igen', 'Svarede Ikke', 'Ikke Interesseret'];
+    const uncalled = items.filter(a => !a.status || a.status === 'Ikke ringet' || a.status.trim() === '' || !handledStatuses.includes(a.status)).length;
 
     document.getElementById('countMeetings').textContent = meetings;
     document.getElementById('countOffers').textContent = offers;
@@ -465,7 +468,8 @@
     }
     list.innerHTML = '';
     
-    const activeAppointments = items.filter(a => a.status !== 'Ikke ringet');
+    const handledStatuses = ['Møde Booket', 'Lukket Ordre', 'Send Info', 'Sendt tilbud', 'Ring Igen'];
+    const activeAppointments = items.filter(a => handledStatuses.includes(a.status));
     
     if (activeAppointments.length === 0) {
       list.innerHTML = '<p style="color:#94a3b8;">Ingen aktive aftaler endnu.</p>';
@@ -473,7 +477,7 @@
     }
 
     activeAppointments.forEach(item => {
-      const rawTime = item.booked_for || item.callback_at;
+      const rawTime = item.booked_for || item.callback_at || item.appointment_date;
       let formattedDate = 'Ingen dato angivet';
       if (rawTime) {
         const d = new Date(rawTime);
