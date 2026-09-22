@@ -31,6 +31,9 @@
     
     .phone-number { font-size: 28px; font-weight: bold; color: #4ade80; text-decoration: none; display: inline-block; margin: 10px 0; }
     
+    .lead-info-pills { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+    .info-pill { background: #1e293b; border: 1px solid #334155; padding: 4px 10px; border-radius: 6px; font-size: 12px; color: #38bdf8; font-weight: 600; }
+
     .btn-group { display: flex; gap: 10px; margin-top: 15px; }
     .btn { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
     .btn-call { background: #22c55e; color: white; }
@@ -79,8 +82,8 @@
       <div class="stat-number" id="countCallbacks" style="color:#eab308;">0</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">📞 Ubehandlede</div>
-      <div class="stat-number" id="countUncalled" style="color:#a855f7;">0</div>
+      <div class="stat-label">📋 Aftaler I Alt</div>
+      <div class="stat-number" id="countTotal" style="color:#cbd5e1;">0</div>
     </div>
   </div>
 
@@ -99,6 +102,13 @@
     <div class="card" id="leadCard">
       <h2 id="companyName" style="margin:0; font-size:20px;">Henter lead...</h2>
       <div id="contactPerson" style="color:#94a3b8; font-size:14px; margin-top:4px;"></div>
+      
+      <!-- CVR & ANSATTE INFO -->
+      <div class="lead-info-pills">
+        <span class="info-pill" id="cvrPill">CVR: -</span>
+        <span class="info-pill" id="employeesPill" style="color:#a855f7;">Ansatte: -</span>
+      </div>
+
       <a id="phoneLink" href="#" class="phone-number">...</a>
       
       <div class="btn-group">
@@ -257,6 +267,8 @@
     document.getElementById('companyName').textContent = 'Henter næste emne...';
     document.getElementById('contactPerson').textContent = '';
     document.getElementById('phoneLink').textContent = '...';
+    document.getElementById('cvrPill').textContent = 'CVR: -';
+    document.getElementById('employeesPill').textContent = 'Ansatte: -';
     document.getElementById('callNotes').value = '';
 
     try {
@@ -269,6 +281,13 @@
         document.getElementById('phoneLink').textContent = data.phone || 'Intet nummer';
         document.getElementById('phoneLink').href = `tel:${data.phone}`;
         document.getElementById('callBtn').href = `tel:${data.phone}`;
+
+        // CVR og Ansatte felter
+        const cvrVal = data.cvr || data.vat_number || data.cvr_number || 'Ikke angivet';
+        const empVal = data.employees || data.antal_ansatte || data.employee_count || 'Ikke angivet';
+        document.getElementById('cvrPill').textContent = `CVR: ${cvrVal}`;
+        document.getElementById('employeesPill').textContent = `Ansatte: ${empVal}`;
+
         if (data.notes) {
           document.getElementById('callNotes').value = data.notes;
         }
@@ -430,16 +449,15 @@
 
   function updateCounters(items) {
     if (!Array.isArray(items)) return;
-    
+
     const meetings = items.filter(a => a.status === 'Møde Booket' || a.status === 'Lukket Ordre').length;
     const offers = items.filter(a => a.status === 'Send Info' || a.status === 'Sendt tilbud').length;
     const callbacks = items.filter(a => a.status === 'Ring Igen').length;
-    const uncalled = items.filter(a => a.status === 'Ikke ringet').length;
 
     document.getElementById('countMeetings').textContent = meetings;
     document.getElementById('countOffers').textContent = offers;
     document.getElementById('countCallbacks').textContent = callbacks;
-    document.getElementById('countUncalled').textContent = uncalled;
+    document.getElementById('countTotal').textContent = items.length;
   }
 
   function filterAppointments(type, btn) {
@@ -464,16 +482,9 @@
       return;
     }
     list.innerHTML = '';
-    
-    const activeAppointments = items.filter(a => a.status !== 'Ikke ringet');
-    
-    if (activeAppointments.length === 0) {
-      list.innerHTML = '<p style="color:#94a3b8;">Ingen aktive aftaler endnu.</p>';
-      return;
-    }
 
-    activeAppointments.forEach(item => {
-      const rawTime = item.booked_for || item.callback_at;
+    items.forEach(item => {
+      const rawTime = item.booked_for || item.callback_at || item.appointment_date;
       let formattedDate = 'Ingen dato angivet';
       if (rawTime) {
         const d = new Date(rawTime);
@@ -521,7 +532,7 @@
       const company = (item.company_name || '').toLowerCase();
       const contact = (item.contact_person || '').toLowerCase();
       const phone = (item.phone || '').toLowerCase();
-      const cvr = (item.cvr || '').toLowerCase();
+      const cvr = (item.cvr || item.vat_number || '').toLowerCase();
       const notes = (item.notes || '').toLowerCase();
 
       return company.includes(query) || contact.includes(query) || phone.includes(query) || cvr.includes(query) || notes.includes(query);
