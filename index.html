@@ -1,296 +1,308 @@
 <html lang="da">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Unikiq Dialer – Salgssystem</title>
+  <title>Unikiq Dialer</title>
   <style>
-    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #0f172a; margin: 0; padding: 20px; color: #f8fafc; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; }
-    .dialer-card { background: #1e293b; width: 100%; max-width: 650px; border-radius: 16px; padding: 25px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); border: 1px solid #334155; }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { background-color: #0f172a; color: #f8fafc; margin: 0; padding: 20px; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 800px; background: #1e293b; border-radius: 12px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 15px; }
-    .brand { font-size: 16px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 1px; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .header h1 { font-size: 20px; margin: 0; color: #38bdf8; text-transform: uppercase; letter-spacing: 1px; }
+    .seller-badge { background: #334155; padding: 6px 12px; border-radius: 20px; font-size: 14px; }
     
-    /* Navigation Tabs */
     .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-    .tab-btn { flex: 1; padding: 10px; background: #0f172a; border: 1px solid #334155; color: #cbd5e1; border-radius: 8px; font-weight: 600; cursor: pointer; text-align: center; }
-    .tab-btn.active { background: #38bdf8; color: #0f172a; border-color: #38bdf8; }
+    .tab-btn { flex: 1; padding: 12px; border: none; background: #334155; color: #94a3b8; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+    .tab-btn.active { background: #38bdf8; color: #0f172a; }
 
-    /* Kampagne Vælger & Script */
-    .field-group { margin-bottom: 15px; text-align: left; }
-    label { font-size: 11px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-    select, input[type="datetime-local"] { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #38bdf8; border-radius: 8px; color: #fff; font-size: 15px; font-weight: 600; outline: none; }
+    /* Under-faner til Aftaler */
+    .sub-tabs { display: flex; gap: 8px; margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 10px; flex-wrap: wrap; }
+    .sub-tab-btn { background: transparent; border: 1px solid #475569; color: #94a3b8; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .sub-tab-btn.active { background: #38bdf8; color: #0f172a; border-color: #38bdf8; }
+
+    .card { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin-bottom: 15px; }
+    .script-box { background: #1e293b; border-left: 4px solid #38bdf8; padding: 12px; margin-bottom: 15px; font-size: 14px; color: #cbd5e1; }
     
-    .script-box { background: #0f172a; border-left: 4px solid #38bdf8; padding: 12px; border-radius: 0 8px 8px 0; margin-bottom: 20px; font-size: 13px; color: #cbd5e1; line-height: 1.4; max-height: 100px; overflow-y: auto; }
-
-    /* Lead info sektion */
-    .lead-box { background: #0f172a; padding: 18px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #334155; }
-    .company-name { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 4px; }
-    .contact-person { font-size: 14px; color: #94a3b8; margin-bottom: 12px; }
-    .phone-number { font-size: 24px; font-weight: 800; color: #4ade80; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
-
-    /* Opkalds-styring */
-    .call-actions { display: flex; gap: 10px; margin-bottom: 20px; }
-    .btn-call { flex: 2; padding: 14px; background: #22c55e; color: white; font-weight: 700; font-size: 16px; border: none; border-radius: 10px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; }
-    .btn-next { flex: 1; padding: 14px; background: #334155; color: white; font-weight: 600; font-size: 14px; border: none; border-radius: 10px; cursor: pointer; }
-
-    textarea { width: 100%; height: 70px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px; color: #fff; font-size: 14px; outline: none; resize: none; }
-
-    /* Status Knapper */
-    .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
-    .status-btn { padding: 12px; border: 1px solid #334155; background: #0f172a; color: #f8fafc; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center; }
-    .status-btn.booked { border-color: #22c55e; color: #4ade80; }
-    .status-btn.no-answer { border-color: #f59e0b; color: #fbbf24; }
-    .status-btn.not-interested { border-color: #ef4444; color: #f87171; }
-    .status-btn.callback { border-color: #38bdf8; color: #38bdf8; }
-
-    /* Modal til Dato/Tidspunkt */
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 100; }
-    .modal { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #38bdf8; width: 90%; max-width: 400px; }
-
-    /* Aftaleoversigt */
-    .view-section { display: block; }
-    .hidden { display: none; }
-    .appointments-list { max-height: 400px; overflow-y: auto; }
-    .appointment-item { background: #0f172a; border: 1px solid #334155; padding: 12px; border-radius: 8px; margin-bottom: 10px; }
-    .appointment-date { color: #38bdf8; font-weight: 700; font-size: 13px; }
-
-    .loading { opacity: 0.5; pointer-events: none; }
+    .phone-number { font-size: 28px; font-weight: bold; color: #4ade80; text-decoration: none; display: inline-block; margin: 10px 0; }
+    
+    .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+    .btn { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .btn-call { background: #22c55e; color: white; }
+    .btn-next { background: #3b82f6; color: white; }
+    
+    .status-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
+    .btn-status { background: #334155; color: white; border: 1px solid #475569; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .btn-status:hover { background: #475569; }
+    
+    select, textarea, input { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; margin-top: 5px; }
+    
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: #1e293b; padding: 24px; border-radius: 12px; width: 90%; max-width: 400px; }
+    
+    .appointment-item { background: #0f172a; border: 1px solid #334155; padding: 14px; border-radius: 8px; margin-bottom: 10px; }
+    .appointment-date { color: #38bdf8; font-weight: bold; font-size: 14px; margin-bottom: 4px; }
   </style>
 </head>
 <body>
 
-<div class="dialer-card" id="dialerCard">
+<div class="container">
   <div class="header">
-    <div class="brand">Unikiq Dialer</div>
-    <div>Sælger: <strong>Lukas</strong></div>
+    <h1>Unikiq Dialer</h1>
+    <div class="seller-badge">Sælger: <strong>Lukas</strong></div>
   </div>
 
-  <!-- Fane Navigation -->
   <div class="nav-tabs">
-    <button class="tab-btn active" id="tabDialer" onclick="switchTab('dialer')">📞 Ring til Emner</button>
-    <button class="tab-btn" id="tabAppointments" onclick="switchTab('appointments')">📅 Aftaler & Opfølgninger</button>
+    <button class="tab-btn active" onclick="switchTab('dialer')">📞 Ring til Emner</button>
+    <button class="tab-btn" onclick="switchTab('appointments')">📅 Aftaler & Opfølgninger</button>
   </div>
 
-  <!-- SEKTION 1: DIALER -->
-  <div id="dialerSection" class="view-section">
-    <div class="field-group">
-      <label for="campaignSelect">Aktiv Kampagne</label>
-      <select id="campaignSelect" onchange="onCampaignChange()">
-        <option value="" disabled selected>Henter kampagner...</option>
-      </select>
+  <!-- DIALER TAB -->
+  <div id="dialerTab">
+    <div class="card">
+      <label style="font-size:12px; color:#94a3b8; font-weight:bold;">AKTIV KAMPAGNE</label>
+      <select id="campaignSelect" onchange="loadNextLead()"></select>
     </div>
 
-    <div class="script-box" id="scriptBox">Vælg en kampagne for at se salgsscript.</div>
-
-    <div class="lead-box">
-      <div class="company-name" id="companyName">Vælg kampagne...</div>
-      <div class="contact-person" id="contactPerson">Ingen lead indlæst</div>
-      <a href="#" id="phoneLink" class="phone-number">📞 -- -- -- --</a>
+    <div class="script-box" id="scriptBox">
+      Henter salgsscript...
     </div>
 
-    <div class="call-actions">
-      <button type="button" class="btn-call" onclick="startCall()">📞 Ring op nu</button>
-      <button type="button" class="btn-next" onclick="loadNextLead()">Næste Lead ➔</button>
+    <div class="card" id="leadCard">
+      <h2 id="companyName" style="margin:0; font-size:20px;">Henter lead...</h2>
+      <div id="contactPerson" style="color:#94a3b8; font-size:14px; margin-top:4px;"></div>
+      <a id="phoneLink" href="#" class="phone-number">...</a>
+      
+      <div class="btn-group">
+        <a id="callBtn" href="#" class="btn btn-call" style="text-align:center; text-decoration:none;">📞 Ring op nu</a>
+        <button class="btn btn-next" onclick="loadNextLead()">Næste Lead ➔</button>
+      </div>
     </div>
 
-    <div class="field-group">
-      <label for="callNotes">Opkaldsnoter / Aftale</label>
-      <textarea id="callNotes" placeholder="Skriv bemærkninger til samtalen her..."></textarea>
-    </div>
-
-    <label>Vælg Opkaldsresultat</label>
-    <div class="status-grid">
-      <button type="button" class="status-btn booked" onclick="openDateModal('Møde Booket')">🎉 Møde Booket</button>
-      <button type="button" class="status-btn callback" onclick="openDateModal('Ring Igen')">📅 Ring Igen</button>
-      <button type="button" class="status-btn no-answer" onclick="submitResult('Svarede Ikke')">⏳ Svarede Ikke</button>
-      <button type="button" class="status-btn not-interested" onclick="submitResult('Ikke Interesseret')">❌ Ikke Interesseret</button>
+    <div class="card">
+      <label style="font-size:12px; color:#94a3b8; font-weight:bold;">OPKALDSNOTER / AFTALE</label>
+      <textarea id="callNotes" rows="3" placeholder="Skriv noter fra opkaldet her..."></textarea>
+      
+      <div class="status-grid">
+        <button class="btn-status" onclick="submitResult('Svarede Ikke')">❌ Svarede Ikke</button>
+        <button class="btn-status" onclick="submitResult('Ikke Interesseret')">🚫 Ikke Interesseret</button>
+        <button class="btn-status" style="border-color:#38bdf8; color:#38bdf8;" onclick="openDateModal('Send Info')">✉️ Send Info / Tilbud</button>
+        <button class="btn-status" style="border-color:#eab308; color:#eab308;" onclick="openDateModal('Ring Igen')">📅 Ring Igen</button>
+        <button class="btn-status" style="border-color:#22c55e; color:#22c55e; grid-column: span 2;" onclick="openDateModal('Møde Booket')">🎉 Møde Booket</button>
+      </div>
     </div>
   </div>
 
-  <!-- SEKTION 2: AFTALE & GENRING OVERSIGT -->
-  <div id="appointmentsSection" class="view-section hidden">
-    <h3>Mine Kommende Aftaler & Tilbageringninger</h3>
-    <div class="appointments-list" id="appointmentsList">
-      <p style="color: #94a3b8;">Henter aftaler...</p>
+  <!-- APPOINTMENTS TAB -->
+  <div id="appointmentsTab" style="display:none;">
+    <div class="sub-tabs">
+      <button class="sub-tab-btn active" onclick="filterAppointments('all', this)">📋 Alle Aftaler</button>
+      <button class="sub-tab-btn" onclick="filterAppointments('moede', this)">🎉 Bookede Møder</button>
+      <button class="sub-tab-btn" onclick="filterAppointments('tilbud', this)">✉️ Sendte Tilbud</button>
+      <button class="sub-tab-btn" onclick="filterAppointments('ring', this)">📅 Tilbageringninger</button>
     </div>
+    
+    <div id="appointmentsList">Henter aftaler...</div>
   </div>
 </div>
 
-<!-- DATO/TID MODAL -->
-<div class="modal-overlay" id="dateModal">
-  <div class="modal">
-    <h3 id="modalTitle" style="margin-top:0; color:#38bdf8;">Vælg tidspunkt</h3>
-    <div class="field-group">
-      <label for="datetimeInput">Dato og klokkeslæt</label>
-      <input type="datetime-local" id="datetimeInput">
-    </div>
-    <div style="display:flex; gap:10px; margin-top:20px;">
-      <button type="button" style="flex:1; padding:10px; background:#334155; color:#fff; border:none; border-radius:6px; cursor:pointer;" onclick="closeDateModal()">Annuller</button>
-      <button type="button" style="flex:1; padding:10px; background:#22c55e; color:#fff; font-weight:700; border:none; border-radius:6px; cursor:pointer;" onclick="confirmDateResult()">Gem Aftale</button>
+<!-- DATE/TIME MODAL -->
+<div class="modal" id="dateModal">
+  <div class="modal-content">
+    <h3 id="modalTitle" style="margin-top:0;">Vælg dato og tidspunkt</h3>
+    <input type="datetime-local" id="appointmentTime">
+    <div class="btn-group" style="margin-top:20px;">
+      <button class="btn" style="background:#475569; color:white;" onclick="closeModal()">Annuller</button>
+      <button class="btn btn-call" onclick="confirmAppointment()">Gem Aftale</button>
     </div>
   </div>
 </div>
 
 <script>
-  const GET_CAMPAIGNS_WEBHOOK = 'https://n8n.unikiq.dk/webhook/dialer-get-campaigns';
-  const GET_LEAD_WEBHOOK = 'https://n8n.unikiq.dk/webhook/dialer-get-lead';
-  const SAVE_RESULT_WEBHOOK = 'https://n8n.unikiq.dk/webhook/dialer-save-result';
-  const GET_APPOINTMENTS_WEBHOOK = 'https://n8n.unikiq.dk/webhook/dialer-get-appointments';
+  const WEBHOOK_GET_CAMPAIGNS = 'https://n8n.unikiq.dk/webhook/dialer-get-campaigns';
+  const WEBHOOK_GET_LEAD = 'https://n8n.unikiq.dk/webhook/dialer-get-lead';
+  const WEBHOOK_SAVE_RESULT = 'https://n8n.unikiq.dk/webhook/dialer-save-result';
+  const WEBHOOK_GET_APPOINTMENTS = 'https://n8n.unikiq.dk/webhook/dialer-get-appointments';
 
-  let campaignsList = [];
   let currentLead = null;
-  let selectedPendingStatus = null;
+  let selectedStatus = '';
+  let allAppointments = [];
 
-  window.addEventListener('DOMContentLoaded', () => {
-    fetchCampaigns();
-  });
-
-  function switchTab(tab) {
-    document.getElementById('tabDialer').classList.toggle('active', tab === 'dialer');
-    document.getElementById('tabAppointments').classList.toggle('active', tab === 'appointments');
-    document.getElementById('dialerSection').classList.toggle('hidden', tab !== 'dialer');
-    document.getElementById('appointmentsSection').classList.toggle('hidden', tab !== 'appointments');
-
-    if (tab === 'appointments') {
-      fetchAppointments();
-    }
+  async function init() {
+    await fetchCampaigns();
+    loadNextLead();
   }
 
   async function fetchCampaigns() {
     try {
-      const response = await fetch(GET_CAMPAIGNS_WEBHOOK);
-      if (response.ok) {
-        campaignsList = await response.json();
-        const select = document.getElementById('campaignSelect');
-        select.innerHTML = '';
-        campaignsList.forEach(c => {
-          const opt = document.createElement('option');
-          opt.value = c.id;
-          opt.innerText = `${c.name} (${c.client_name})`;
-          select.appendChild(opt);
-        });
-        onCampaignChange();
-      }
-    } catch (err) { console.error(err); }
+      const res = await fetch(WEBHOOK_GET_CAMPAIGNS);
+      const data = await res.json();
+      const select = document.getElementById('campaignSelect');
+      select.innerHTML = '';
+      data.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = `${c.name} (${c.client_name})`;
+        select.appendChild(opt);
+      });
+      updateScript();
+    } catch(e) { console.error(e); }
   }
 
-  function onCampaignChange() {
+  function updateScript() {
     const campaignId = document.getElementById('campaignSelect').value;
-    const selected = campaignsList.find(c => c.id == campaignId);
-    if (selected) {
-      document.getElementById('scriptBox').innerText = selected.script_text || 'Intet script angivet.';
-      loadNextLead();
+    const scriptBox = document.getElementById('scriptBox');
+    if (campaignId == '2') {
+      scriptBox.innerHTML = '<strong>Salgsscript (Komplet Lej):</strong><br>"Hej! Jeg ringer på vegne af Komplet Lej vedrørende jeres materiel og skurvogne..."';
+    } else {
+      scriptBox.innerHTML = '<strong>Salgsscript (Unikiq):</strong><br>"Hej! Jeg ringer vedrørende jeres salg og mødebooking..."';
     }
   }
 
   async function loadNextLead() {
+    updateScript();
     const campaignId = document.getElementById('campaignSelect').value;
-    if (!campaignId) return;
-    const card = document.getElementById('dialerCard');
-    card.classList.add('loading');
-    
-    try {
-      const response = await fetch(`${GET_LEAD_WEBHOOK}?campaign_id=${campaignId}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data && data.id) {
-          currentLead = data;
-          document.getElementById('companyName').innerText = currentLead.company_name;
-          document.getElementById('contactPerson').innerText = currentLead.contact_person || 'Ingen kontaktperson';
-          document.getElementById('phoneLink').innerText = `📞 ${currentLead.phone}`;
-          document.getElementById('phoneLink').href = `tel:${currentLead.phone}`;
-        } else {
-          currentLead = null;
-          document.getElementById('companyName').innerText = 'Ingen flere emner lige nu';
-          document.getElementById('contactPerson').innerText = 'Alle udskudte og nye emner er behandlet!';
-          document.getElementById('phoneLink').innerText = '📞 -- -- -- --';
-        }
-      }
-    } catch (err) { console.error(err); } 
-    finally {
-      card.classList.remove('loading');
-      document.getElementById('callNotes').value = '';
-    }
-  }
+    document.getElementById('companyName').textContent = 'Henter næste emne...';
+    document.getElementById('contactPerson').textContent = '';
+    document.getElementById('phoneLink').textContent = '...';
+    document.getElementById('callNotes').value = '';
 
-  function startCall() {
-    const phone = document.getElementById('phoneLink').href;
-    if (phone && phone !== '#') window.location.href = phone;
+    try {
+      const res = await fetch(`${WEBHOOK_GET_LEAD}?campaign_id=${campaignId}`);
+      const data = await res.json();
+      if (data && data.id) {
+        currentLead = data;
+        document.getElementById('companyName').textContent = data.company_name || 'Ukendt Firma';
+        document.getElementById('contactPerson').textContent = data.contact_person ? `Kontakt: ${data.contact_person}` : '';
+        document.getElementById('phoneLink').textContent = data.phone || 'Intet nummer';
+        document.getElementById('phoneLink').href = `tel:${data.phone}`;
+        document.getElementById('callBtn').href = `tel:${data.phone}`;
+        if (data.notes) {
+          document.getElementById('callNotes').value = `Historiske noter: ${data.notes}`;
+        }
+      } else {
+        document.getElementById('companyName').textContent = '🎉 Ingen flere emner!';
+        document.getElementById('phoneLink').textContent = '';
+      }
+    } catch(e) { console.error(e); }
   }
 
   function openDateModal(status) {
-    if (!currentLead) return alert('Intet aktivt lead.');
-    selectedPendingStatus = status;
-    document.getElementById('modalTitle').innerText = status === 'Møde Booket' ? '🎉 Book Mødetidspunkt' : '📅 Hvornår skal der ringes igen?';
+    selectedStatus = status;
+    if (status === 'Møde Booket') {
+      document.getElementById('modalTitle').textContent = '🎉 Vælg mødetidspunkt';
+    } else if (status === 'Send Info') {
+      document.getElementById('modalTitle').textContent = '✉️ Vælg opfølgningsdato for tilbud';
+    } else {
+      document.getElementById('modalTitle').textContent = '📅 Vælg tilbageringningstidspunkt';
+    }
     document.getElementById('dateModal').style.display = 'flex';
   }
 
-  function closeDateModal() {
+  function closeModal() {
     document.getElementById('dateModal').style.display = 'none';
   }
 
-  function confirmDateResult() {
-    const dateVal = document.getElementById('datetimeInput').value;
-    if (!dateVal) return alert('Vælg venligst en dato og tidspunkt.');
-    closeDateModal();
-    submitResult(selectedPendingStatus, dateVal);
+  async function confirmAppointment() {
+    const datetime = document.getElementById('appointmentTime').value;
+    if (!datetime) { alert('Vælg venligst en dato og tid!'); return; }
+    closeModal();
+    await submitResult(selectedStatus, datetime);
   }
 
-  async function submitResult(status, scheduledTime = null) {
+  async function submitResult(status, dateVal = null) {
     if (!currentLead) return;
-    const campaignId = document.getElementById('campaignSelect').value;
     const notes = document.getElementById('callNotes').value;
-    const card = document.getElementById('dialerCard');
-    card.classList.add('loading');
+    
+    await fetch(WEBHOOK_SAVE_RESULT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lead_id: currentLead.id,
+        status: status,
+        notes: notes,
+        appointment_date: dateVal
+      })
+    });
 
-    const payload = {
-      campaign_id: parseInt(campaignId),
-      lead_id: currentLead.id,
-      status: status,
-      notes: notes,
-      agent: 'Lukas',
-      scheduled_time: scheduledTime
-    };
+    loadNextLead();
+  }
 
-    try {
-      const response = await fetch(SAVE_RESULT_WEBHOOK, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (response.ok) loadNextLead();
-    } catch (err) { alert('Netværksfejl'); card.classList.remove('loading'); }
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    if (tab === 'dialer') {
+      document.querySelectorAll('.tab-btn')[0].classList.add('active');
+      document.getElementById('dialerTab').style.display = 'block';
+      document.getElementById('appointmentsTab').style.display = 'none';
+    } else {
+      document.querySelectorAll('.tab-btn')[1].classList.add('active');
+      document.getElementById('dialerTab').style.display = 'none';
+      document.getElementById('appointmentsTab').style.display = 'block';
+      fetchAppointments();
+    }
   }
 
   async function fetchAppointments() {
     const list = document.getElementById('appointmentsList');
     list.innerHTML = '<p style="color:#94a3b8;">Henter aftaler...</p>';
     try {
-      const response = await fetch(GET_APPOINTMENTS_WEBHOOK);
-      if (response.ok) {
-        const data = await response.json();
-        if (!data || data.length === 0) {
-          list.innerHTML = '<p style="color:#94a3b8;">Ingen kommende aftaler eller opfølgninger.</p>';
-          return;
-        }
-        list.innerHTML = '';
-        data.forEach(item => {
-          const div = document.createElement('div');
-          div.className = 'appointment-item';
-          const timeText = item.booked_for || item.callback_at || 'Ingen tid';
-          div.innerHTML = `
-            <div class="appointment-date">${item.status === 'Møde Booket' ? '🎉 MØDE' : '📅 RING IGEN'}: ${new Date(timeText).toLocaleString('da-DK')}</div>
-            <strong style="font-size:16px;">${item.company_name}</strong> (${item.contact_person || 'Ingen kontaktperson'})<br>
-            <span style="color:#4ade80;">📞 ${item.phone}</span><br>
-            <small style="color:#cbd5e1;">Noter: ${item.notes || 'Ingen noter'}</small>
-          `;
-          list.appendChild(div);
-        });
-      }
-    } catch (err) { list.innerHTML = '<p style="color:#ef4444;">Kunne ikke hente aftaler.</p>'; }
+      const res = await fetch(WEBHOOK_GET_APPOINTMENTS);
+      allAppointments = await res.json();
+      renderAppointments(allAppointments);
+    } catch(e) { list.innerHTML = '<p style="color:#ef4444;">Kunne ikke hente aftaler.</p>'; }
   }
-</script>
 
+  function filterAppointments(type, btn) {
+    document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    if (type === 'moede') {
+      renderAppointments(allAppointments.filter(a => a.status === 'Møde Booket'));
+    } else if (type === 'tilbud') {
+      renderAppointments(allAppointments.filter(a => a.status === 'Send Info'));
+    } else if (type === 'ring') {
+      renderAppointments(allAppointments.filter(a => a.status === 'Ring Igen'));
+    } else {
+      renderAppointments(allAppointments);
+    }
+  }
+
+  function renderAppointments(items) {
+    const list = document.getElementById('appointmentsList');
+    if (!items || items.length === 0) {
+      list.innerHTML = '<p style="color:#94a3b8;">Ingen emner i denne kategori.</p>';
+      return;
+    }
+    list.innerHTML = '';
+    items.forEach(item => {
+      const rawTime = item.booked_for || item.callback_at;
+      let formattedDate = 'Ingen dato angivet';
+      if (rawTime) {
+        const d = new Date(rawTime);
+        if (!isNaN(d.getTime())) {
+          formattedDate = d.toLocaleString('da-DK', { dateStyle: 'short', timeStyle: 'short' });
+        } else {
+          formattedDate = rawTime;
+        }
+      }
+
+      let tagText = '📅 RING IGEN';
+      if (item.status === 'Møde Booket') tagText = '🎉 MØDE';
+      if (item.status === 'Send Info') tagText = '✉️ TILBUD / OPFØLGNING';
+
+      const div = document.createElement('div');
+      div.className = 'appointment-item';
+      div.innerHTML = `
+        <div class="appointment-date">${tagText}: ${formattedDate}</div>
+        <strong style="font-size:16px;">${item.company_name}</strong> ${item.contact_person ? '(' + item.contact_person + ')' : ''}<br>
+        <span style="color:#4ade80;">📞 ${item.phone}</span><br>
+        <small style="color:#cbd5e1;">Noter: ${item.notes || 'Ingen noter'}</small>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  init();
+</script>
 </body>
 </html>
