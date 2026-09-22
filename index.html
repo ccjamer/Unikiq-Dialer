@@ -133,9 +133,7 @@
   const WEBHOOK_GET_LEAD = 'https://n8n.unikiq.dk/webhook/dialer-get-lead';
   const WEBHOOK_SAVE_RESULT = 'https://n8n.unikiq.dk/webhook/dialer-save-result';
   const WEBHOOK_GET_APPOINTMENTS = 'https://n8n.unikiq.dk/webhook/dialer-get-appointments';
-  
-  // DIT GMAIL WORKFLOW WEBHOOK:
-  const WEBHOOK_CREATE_DRAFT = 'https://n8n.unikiq.dk/webhook/unikiqsalgsassistent'; 
+  const WEBHOOK_CREATE_DRAFT = 'https://n8n.unikiq.dk/webhook/unikiqsalgsassistent';
 
   let currentLead = null;
   let selectedStatus = '';
@@ -144,7 +142,7 @@
 
   async function init() {
     await fetchCampaigns();
-    loadNextLead();
+    await loadNextLead();
   }
 
   async function fetchCampaigns() {
@@ -160,7 +158,7 @@
         select.appendChild(opt);
       });
       updateScript();
-    } catch(e) { console.error(e); }
+    } catch(e) { console.error("Fejl ved hentning af kampagner:", e); }
   }
 
   function onCampaignChange() {
@@ -182,7 +180,10 @@
   }
 
   async function loadNextLead() {
-    const campaignId = document.getElementById('campaignSelect').value;
+    const campaignSelect = document.getElementById('campaignSelect');
+    if (!campaignSelect || !campaignSelect.value) return;
+    
+    const campaignId = campaignSelect.value;
     document.getElementById('companyName').textContent = 'Henter næste emne...';
     document.getElementById('contactPerson').textContent = '';
     document.getElementById('phoneLink').textContent = '...';
@@ -199,16 +200,21 @@
         document.getElementById('phoneLink').href = `tel:${data.phone}`;
         document.getElementById('callBtn').href = `tel:${data.phone}`;
         if (data.notes) {
-          document.getElementById('callNotes').value = `Historiske noter: ${data.notes}`;
+          document.getElementById('callNotes').value = data.notes;
         }
       } else {
+        currentLead = null;
         document.getElementById('companyName').textContent = '🎉 Ingen flere emner!';
         document.getElementById('phoneLink').textContent = '';
       }
-    } catch(e) { console.error(e); }
+    } catch(e) { 
+      console.error("Fejl ved hentning af lead:", e);
+      document.getElementById('companyName').textContent = 'Kunne ikke hente emne';
+    }
   }
 
   function openDateModal(status) {
+    if (!currentLead) { alert("Intet aktivt lead at gemme for."); return; }
     selectedStatus = status;
     const emailFields = document.getElementById('emailFields');
     emailFields.style.display = 'none';
@@ -249,7 +255,7 @@
             campaign_id: document.getElementById('campaignSelect').value
           })
         });
-      } catch(e) { console.error("Kunne ikke oprette kladde", e); }
+      } catch(e) { console.error("Kunne ikke oprette kladde:", e); }
     }
 
     closeModal();
@@ -260,18 +266,23 @@
     if (!currentLead) return;
     const notes = document.getElementById('callNotes').value;
     
-    await fetch(WEBHOOK_SAVE_RESULT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        lead_id: currentLead.id,
-        status: status,
-        notes: notes,
-        appointment_date: dateVal
-      })
-    });
+    try {
+      await fetch(WEBHOOK_SAVE_RESULT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lead_id: currentLead.id,
+          status: status,
+          notes: notes,
+          appointment_date: dateVal
+        })
+      });
+    } catch(e) {
+      console.error("Fejl ved gemning af resultat:", e);
+    }
 
-    loadNextLead();
+    // Indlæs næste lead
+    await loadNextLead();
   }
 
   function switchTab(tab) {
@@ -290,7 +301,9 @@
   }
 
   async function fetchAppointments() {
-    const campaignId = document.getElementById('campaignSelect').value;
+    const campaignSelect = document.getElementById('campaignSelect');
+    if (!campaignSelect) return;
+    const campaignId = campaignSelect.value;
     const list = document.getElementById('appointmentsList');
     list.innerHTML = '<p style="color:#94a3b8;">Henter aftaler for den valgte kampagne...</p>';
     try {
