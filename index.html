@@ -1,0 +1,168 @@
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unikiq Dialer – Salgssystem</title>
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #0f172a; margin: 0; padding: 20px; color: #f8fafc; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+    .dialer-card { background: #1e293b; width: 100%; max-width: 500px; border-radius: 16px; padding: 25px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); border: 1px solid #334155; }
+    
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 15px; }
+    .brand { font-size: 14px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 1px; }
+    .agent-tag { font-size: 12px; background: #334155; padding: 4px 10px; border-radius: 20px; color: #cbd5e1; }
+
+    /* Lead info sektion */
+    .lead-box { background: #0f172a; padding: 18px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #334155; }
+    .company-name { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .contact-person { font-size: 14px; color: #94a3b8; margin-bottom: 12px; }
+    .phone-number { font-size: 24px; font-weight: 800; color: #4ade80; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+
+    /* Opkalds-styring */
+    .call-actions { display: flex; gap: 10px; margin-bottom: 20px; }
+    .btn-call { flex: 2; padding: 14px; background: #22c55e; color: white; font-weight: 700; font-size: 16px; border: none; border-radius: 10px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: background 0.2s; }
+    .btn-call:hover { background: #16a34a; }
+    .btn-next { flex: 1; padding: 14px; background: #334155; color: white; font-weight: 600; font-size: 14px; border: none; border-radius: 10px; cursor: pointer; }
+
+    /* Noter */
+    .field-group { margin-bottom: 20px; }
+    label { font-size: 12px; font-weight: 600; color: #94a3b8; display: block; margin-bottom: 6px; text-transform: uppercase; }
+    textarea { width: 100%; height: 80px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px; color: #fff; font-size: 14px; outline: none; resize: none; }
+
+    /* Status Knapper (Adversus stil uten larm) */
+    .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .status-btn { padding: 12px; border: 1px solid #334155; background: #0f172a; color: #f8fafc; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center; }
+    .status-btn:hover { border-color: #38bdf8; background: #1e293b; }
+    .status-btn.booked { border-color: #22c55e; color: #4ade80; }
+    .status-btn.no-answer { border-color: #f59e0b; color: #fbbf24; }
+    .status-btn.not-interested { border-color: #ef4444; color: #f87171; }
+    .status-btn.callback { border-color: #38bdf8; color: #38bdf8; }
+
+    .loading { opacity: 0.5; pointer-events: none; }
+  </style>
+</head>
+<body>
+
+<div class="dialer-card" id="dialerCard">
+  <div class="header">
+    <div class="brand">Unikiq Dialer</div>
+    <div class="agent-tag">Sælger: <strong id="agentName">Lukas</strong></div>
+  </div>
+
+  <!-- Lead Kort -->
+  <div class="lead-box">
+    <div class="company-name" id="companyName">Henter næste lead...</div>
+    <div class="contact-person" id="contactPerson">Vent venligst...</div>
+    <a href="#" id="phoneLink" class="phone-number">📞 -- -- -- --</a>
+  </div>
+
+  <!-- Opkaldsknap -->
+  <div class="call-actions">
+    <button type="button" class="btn-call" onclick="startCall()">📞 Ring op nu</button>
+    <button type="button" class="btn-next" onclick="loadNextLead()">Næste Lead ➔</button>
+  </div>
+
+  <!-- Opkaldsnoter -->
+  <div class="field-group">
+    <label for="callNotes">Opkaldsnoter / Aftale</label>
+    <textarea id="callNotes" placeholder="Skriv bemærkninger til samtalen her..."></textarea>
+  </div>
+
+  <!-- Status / Resultat Knapper -->
+  <label>Vælg Opkaldsresultat</label>
+  <div class="status-grid">
+    <button type="button" class="status-btn booked" onclick="submitResult('Møde Booket')">🎉 Møde Booket</button>
+    <button type="button" class="status-btn callback" onclick="submitResult('Ring Igen')">📅 Ring Igen</button>
+    <button type="button" class="status-btn no-answer" onclick="submitResult('Svarede Ikke')">⏳ Svarede Ikke</button>
+    <button type="button" class="status-btn not-interested" onclick="submitResult('Ikke Interesseret')">❌ Ikke Interesseret</button>
+  </div>
+</div>
+
+<script>
+  // Opsætning af n8n Webhook Endpoints
+  const GET_LEAD_WEBHOOK = 'https://n8n.unikiq.dk/webhook/dialer-get-lead';
+  const SAVE_RESULT_WEBHOOK = 'https://n8n.unikiq.dk/webhook/dialer-save-result';
+
+  let currentLead = null;
+
+  // Hent næste lead fra n8n/Postgres når siden indlæses
+  window.addEventListener('DOMContentLoaded', () => {
+    loadNextLead();
+  });
+
+  async function loadNextLead() {
+    const card = document.getElementById('dialerCard');
+    card.classList.add('loading');
+    
+    try {
+      const response = await fetch(GET_LEAD_WEBHOOK);
+      if (response.ok) {
+        currentLead = await response.json();
+        document.getElementById('companyName').innerText = currentLead.company_name || 'Ingen virksomhed';
+        document.getElementById('contactPerson').innerText = currentLead.contact_person || 'Ingen kontaktperson';
+        
+        const phone = currentLead.phone || '';
+        const phoneLink = document.getElementById('phoneLink');
+        phoneLink.innerText = `📞 ${phone}`;
+        phoneLink.href = `tel:${phone}`;
+      } else {
+        document.getElementById('companyName').innerText = 'Ingen flere leads';
+        document.getElementById('contactPerson').innerText = 'Alle emner er ringet op!';
+      }
+    } catch (err) {
+      console.error('Fejl ved hentning af lead:', err);
+      document.getElementById('companyName').innerText = 'Demotilstand (Netværksfejl)';
+      document.getElementById('contactPerson').innerText = 'Test virksomhed A/S';
+      document.getElementById('phoneLink').innerText = '📞 +45 12 34 56 78';
+    } finally {
+      card.classList.remove('loading');
+      document.getElementById('callNotes').value = '';
+    }
+  }
+
+  function startCall() {
+    const phone = document.getElementById('phoneLink').href;
+    if (phone && phone !== '#') {
+      window.location.href = phone;
+    } else {
+      alert('Intet telefonnummer tilgængeligt!');
+    }
+  }
+
+  async function submitResult(status) {
+    const notes = document.getElementById('callNotes').value;
+    const card = document.getElementById('dialerCard');
+
+    card.classList.add('loading');
+
+    const payload = {
+      lead_id: currentLead ? currentLead.id : null,
+      company_name: currentLead ? currentLead.company_name : 'Test Virksomhed',
+      status: status,
+      notes: notes,
+      agent: 'Lukas'
+    };
+
+    try {
+      const response = await fetch(SAVE_RESULT_WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        // Hent næste lead automatisk når resultatet er gemt
+        loadNextLead();
+      } else {
+        alert('Kunne ikke gemme resultatet. Prøv igen.');
+        card.classList.remove('loading');
+      }
+    } catch (err) {
+      alert('Netværksfejl – resultatet blev ikke gemt.');
+      card.classList.remove('loading');
+    }
+  }
+</script>
+
+</body>
+</html>
