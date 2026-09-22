@@ -79,8 +79,8 @@
       <div class="stat-number" id="countCallbacks" style="color:#eab308;">0</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">📞 Ubehandlede</div>
-      <div class="stat-number" id="countUncalled" style="color:#a855f7;">0</div>
+      <div class="stat-label">📋 Aftaler I Alt</div>
+      <div class="stat-number" id="countTotal" style="color:#cbd5e1;">0</div>
     </div>
   </div>
 
@@ -429,31 +429,16 @@
   }
 
   function updateCounters(items) {
-    if (!Array.isArray(items) || items.length === 0) {
-      document.getElementById('countMeetings').textContent = '0';
-      document.getElementById('countOffers').textContent = '0';
-      document.getElementById('countCallbacks').textContent = '0';
-      document.getElementById('countUncalled').textContent = '0';
-      return;
-    }
+    if (!Array.isArray(items)) return;
 
     const meetings = items.filter(a => a.status === 'Møde Booket' || a.status === 'Lukket Ordre').length;
     const offers = items.filter(a => a.status === 'Send Info' || a.status === 'Sendt tilbud').length;
     const callbacks = items.filter(a => a.status === 'Ring Igen').length;
 
-    // Henter ubehandlede direkte fra SQL-queryens uncalled_count eller tæller lokale
-    const firstItem = items[0];
-    const uncalledFromSql = firstItem ? firstItem.uncalled_count : undefined;
-    
-    const handledStatuses = ['Møde Booket', 'Lukket Ordre', 'Send Info', 'Sendt tilbud', 'Ring Igen', 'Svarede Ikke', 'Ikke Interesseret'];
-    const uncalled = (uncalledFromSql !== undefined) 
-      ? uncalledFromSql 
-      : items.filter(a => !a.status || a.status === 'Ikke ringet' || a.status.trim() === '' || !handledStatuses.includes(a.status)).length;
-
     document.getElementById('countMeetings').textContent = meetings;
     document.getElementById('countOffers').textContent = offers;
     document.getElementById('countCallbacks').textContent = callbacks;
-    document.getElementById('countUncalled').textContent = uncalled;
+    document.getElementById('countTotal').textContent = items.length;
   }
 
   function filterAppointments(type, btn) {
@@ -478,16 +463,8 @@
       return;
     }
     list.innerHTML = '';
-    
-    const handledStatuses = ['Møde Booket', 'Lukket Ordre', 'Send Info', 'Sendt tilbud', 'Ring Igen'];
-    const activeAppointments = items.filter(a => handledStatuses.includes(a.status));
-    
-    if (activeAppointments.length === 0) {
-      list.innerHTML = '<p style="color:#94a3b8;">Ingen aktive aftaler endnu.</p>';
-      return;
-    }
 
-    activeAppointments.forEach(item => {
+    items.forEach(item => {
       const rawTime = item.booked_for || item.callback_at || item.appointment_date;
       let formattedDate = 'Ingen dato angivet';
       if (rawTime) {
