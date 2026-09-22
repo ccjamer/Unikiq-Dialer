@@ -27,7 +27,7 @@
     .sub-tab-btn.active { background: #38bdf8; color: #0f172a; border-color: #38bdf8; }
 
     .card { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin-bottom: 15px; }
-    .script-box { background: #1e293b; border-left: 4px solid #38bdf8; padding: 12px; margin-bottom: 15px; font-size: 14px; color: #cbd5e1; }
+    .script-box { background: #1e293b; border-left: 4px solid #38bdf8; padding: 12px; margin-bottom: 15px; font-size: 14px; color: #cbd5e1; line-height: 1.5; }
     
     .phone-number { font-size: 28px; font-weight: bold; color: #4ade80; text-decoration: none; display: inline-block; margin: 10px 0; }
     
@@ -47,6 +47,8 @@
     
     .appointment-item { background: #0f172a; border: 1px solid #334155; padding: 14px; border-radius: 8px; margin-bottom: 10px; }
     .appointment-date { font-weight: bold; font-size: 14px; margin-bottom: 4px; }
+    
+    .search-input { border: 2px solid #38bdf8; font-size: 16px; padding: 12px; }
   </style>
 </head>
 <body>
@@ -77,14 +79,15 @@
       <div class="stat-number" id="countCallbacks" style="color:#eab308;">0</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">📋 Aftaler I Alt</div>
-      <div class="stat-number" id="countTotal" style="color:#cbd5e1;">0</div>
+      <div class="stat-label">📞 Ubehandlede</div>
+      <div class="stat-number" id="countUncalled" style="color:#a855f7;">0</div>
     </div>
   </div>
 
   <div class="nav-tabs">
     <button class="tab-btn active" onclick="switchTab('dialer')">📞 Ring til Emner</button>
     <button class="tab-btn" onclick="switchTab('appointments')">📅 Aftaler & Opfølgninger</button>
+    <button class="tab-btn" onclick="switchTab('search')">🔍 Søg i Emner</button>
   </div>
 
   <!-- DIALER TAB -->
@@ -128,6 +131,15 @@
     </div>
     
     <div id="appointmentsList">Henter aftaler...</div>
+  </div>
+
+  <!-- SEARCH TAB -->
+  <div id="searchTab" style="display:none;">
+    <div class="card">
+      <label style="font-size:12px; color:#38bdf8; font-weight:bold;">SØG EFTER FIRMA, CVR, TLF, PERSON ELLER NOTER</label>
+      <input type="text" id="searchInput" class="search-input" placeholder="Indtast søgeord (f.eks. CVR, firmanavn, tlf)..." oninput="handleSearch()">
+    </div>
+    <div id="searchResultsList"><p style="color:#94a3b8;">Indtast et søgeord ovenfor for at finde et emne.</p></div>
   </div>
 </div>
 
@@ -203,6 +215,7 @@
     updateScript();
     loadNextLead();
     fetchAppointments();
+    if (currentTab === 'search') handleSearch();
   }
 
   function updateScript() {
@@ -211,13 +224,24 @@
     const meetingBtn = document.getElementById('meetingBtn');
 
     if (campaignId == '2') {
-      scriptBox.innerHTML = '<strong>Salgsscript (Komplet Lej):</strong><br>"Hej! Jeg ringer på vegne af Komplet Lej vedrørende jeres materiel og skurvogne..."';
+      scriptBox.innerHTML = `
+        <strong>🎯 Salgsscript (Komplet Lej):</strong><br>
+        <em>"Hej [Navn], jeg ringer fra Komplet Lej – Danmarks uvildige mæglerhus for byggeri.<br>
+        Vi ejer ikke selv grej, men sidder på jeres side af bordet og indhenter priser på <strong>materiel, skurbyer, transport og bemanding</strong>.<br>
+        I får leverandørpris 1:1 uden tillæg, sparer 18-24% på transporten, og har én fast rådgiver samt 24/7 vagttelefon.<br>
+        Hvornår kan vi tage et uforpligtende 30-minutters møde og regne på et af jeres kommende projekter?"</em>
+      `;
       if (meetingBtn) {
         meetingBtn.textContent = '🎉 Møde Booket';
         meetingBtn.setAttribute('onclick', "openDateModal('Møde Booket')");
       }
     } else {
-      scriptBox.innerHTML = '<strong>Salgsscript (Unikiq):</strong><br>"Hej! Jeg ringer vedrørende jeres salg og mødebooking..."';
+      scriptBox.innerHTML = `
+        <strong>🎯 Salgsscript (Unikiq):</strong><br>
+        <em>"Hej [Navn], jeg ringer fra Unikiq vedrørende jeres salg og kundetilgang.<br>
+        Vi leverer fuldautomatiserede salgsassistent- og AI-løsninger (DMA), der fjerner 80% af det manuelle arbejde og sætter jeres mødebooking på fuld automatik.<br>
+        Skal vi sætte et kort uforpligtende introduktionsmøde op og vise jer, hvad vi kan automatisere for jer?"</em>
+      `;
       if (meetingBtn) {
         meetingBtn.textContent = '🎉 Salg / Velkomst';
         meetingBtn.setAttribute('onclick', "openDateModal('Lukket Ordre')");
@@ -374,15 +398,21 @@
   function switchTab(tab) {
     currentTab = tab;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('dialerTab').style.display = 'none';
+    document.getElementById('appointmentsTab').style.display = 'none';
+    document.getElementById('searchTab').style.display = 'none';
+
     if (tab === 'dialer') {
       document.querySelectorAll('.tab-btn')[0].classList.add('active');
       document.getElementById('dialerTab').style.display = 'block';
-      document.getElementById('appointmentsTab').style.display = 'none';
-    } else {
+    } else if (tab === 'appointments') {
       document.querySelectorAll('.tab-btn')[1].classList.add('active');
-      document.getElementById('dialerTab').style.display = 'none';
       document.getElementById('appointmentsTab').style.display = 'block';
       fetchAppointments();
+    } else if (tab === 'search') {
+      document.querySelectorAll('.tab-btn')[2].classList.add('active');
+      document.getElementById('searchTab').style.display = 'block';
+      document.getElementById('searchInput').focus();
     }
   }
 
@@ -400,14 +430,16 @@
 
   function updateCounters(items) {
     if (!Array.isArray(items)) return;
+    
     const meetings = items.filter(a => a.status === 'Møde Booket' || a.status === 'Lukket Ordre').length;
     const offers = items.filter(a => a.status === 'Send Info' || a.status === 'Sendt tilbud').length;
     const callbacks = items.filter(a => a.status === 'Ring Igen').length;
+    const uncalled = items.filter(a => a.status === 'Ikke ringet').length;
 
     document.getElementById('countMeetings').textContent = meetings;
     document.getElementById('countOffers').textContent = offers;
     document.getElementById('countCallbacks').textContent = callbacks;
-    document.getElementById('countTotal').textContent = items.length;
+    document.getElementById('countUncalled').textContent = uncalled;
   }
 
   function filterAppointments(type, btn) {
@@ -432,7 +464,15 @@
       return;
     }
     list.innerHTML = '';
-    items.forEach(item => {
+    
+    const activeAppointments = items.filter(a => a.status !== 'Ikke ringet');
+    
+    if (activeAppointments.length === 0) {
+      list.innerHTML = '<p style="color:#94a3b8;">Ingen aktive aftaler endnu.</p>';
+      return;
+    }
+
+    activeAppointments.forEach(item => {
       const rawTime = item.booked_for || item.callback_at;
       let formattedDate = 'Ingen dato angivet';
       if (rawTime) {
@@ -461,6 +501,46 @@
         <div class="appointment-date" style="color:${tagColor};">${tagText}: ${formattedDate}</div>
         <strong style="font-size:16px;">${item.company_name}</strong> ${item.contact_person ? '(' + item.contact_person + ')' : ''}<br>
         <span style="color:#4ade80;">📞 ${item.phone}</span><br>
+        <small style="color:#cbd5e1;">Noter: ${item.notes || 'Ingen noter'}</small>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  /* SØGE FUNKTION */
+  function handleSearch() {
+    const query = document.getElementById('searchInput').value.toLowerCase().trim();
+    const list = document.getElementById('searchResultsList');
+
+    if (!query) {
+      list.innerHTML = '<p style="color:#94a3b8;">Indtast et søgeord ovenfor for at finde et emne.</p>';
+      return;
+    }
+
+    const matches = allAppointments.filter(item => {
+      const company = (item.company_name || '').toLowerCase();
+      const contact = (item.contact_person || '').toLowerCase();
+      const phone = (item.phone || '').toLowerCase();
+      const cvr = (item.cvr || '').toLowerCase();
+      const notes = (item.notes || '').toLowerCase();
+
+      return company.includes(query) || contact.includes(query) || phone.includes(query) || cvr.includes(query) || notes.includes(query);
+    });
+
+    if (matches.length === 0) {
+      list.innerHTML = `<p style="color:#ef4444;">Ingen emner matchede søgningen "${query}".</p>`;
+      return;
+    }
+
+    list.innerHTML = '';
+    matches.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'appointment-item';
+      div.innerHTML = `
+        <div class="appointment-date" style="color:#38bdf8;">STATUS: ${item.status || 'Ikke ringet'}</div>
+        <strong style="font-size:16px;">${item.company_name}</strong> ${item.cvr ? '[CVR: ' + item.cvr + ']' : ''}<br>
+        <span style="color:#94a3b8;">Kontakt: ${item.contact_person || 'Ikke angivet'}</span><br>
+        <a href="tel:${item.phone}" style="color:#4ade80; text-decoration:none; font-weight:bold;">📞 ${item.phone}</a><br>
         <small style="color:#cbd5e1;">Noter: ${item.notes || 'Ingen noter'}</small>
       `;
       list.appendChild(div);
