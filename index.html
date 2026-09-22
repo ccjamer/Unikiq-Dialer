@@ -6,11 +6,18 @@
   <style>
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: #0f172a; margin: 0; padding: 20px; color: #f8fafc; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
-    .dialer-card { background: #1e293b; width: 100%; max-width: 500px; border-radius: 16px; padding: 25px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); border: 1px solid #334155; }
+    .dialer-card { background: #1e293b; width: 100%; max-width: 550px; border-radius: 16px; padding: 25px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); border: 1px solid #334155; }
     
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 15px; }
     .brand { font-size: 14px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 1px; }
     .agent-tag { font-size: 12px; background: #334155; padding: 4px 10px; border-radius: 20px; color: #cbd5e1; }
+
+    /* Kampagne Vælger & Script */
+    .field-group { margin-bottom: 15px; text-align: left; }
+    label { font-size: 11px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    select { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #38bdf8; border-radius: 8px; color: #fff; font-size: 15px; font-weight: 600; outline: none; cursor: pointer; }
+    
+    .script-box { background: #0f172a; border-left: 4px solid #38bdf8; padding: 12px; border-radius: 0 8px 8px 0; margin-bottom: 20px; font-size: 13px; color: #cbd5e1; line-height: 1.4; max-height: 100px; overflow-y: auto; }
 
     /* Lead info sektion */
     .lead-box { background: #0f172a; padding: 18px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #334155; }
@@ -25,12 +32,10 @@
     .btn-next { flex: 1; padding: 14px; background: #334155; color: white; font-weight: 600; font-size: 14px; border: none; border-radius: 10px; cursor: pointer; }
 
     /* Noter */
-    .field-group { margin-bottom: 20px; }
-    label { font-size: 12px; font-weight: 600; color: #94a3b8; display: block; margin-bottom: 6px; text-transform: uppercase; }
-    textarea { width: 100%; height: 80px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px; color: #fff; font-size: 14px; outline: none; resize: none; }
+    textarea { width: 100%; height: 70px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px; color: #fff; font-size: 14px; outline: none; resize: none; }
 
-    /* Status Knapper (Adversus stil uten larm) */
-    .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    /* Status Knapper */
+    .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
     .status-btn { padding: 12px; border: 1px solid #334155; background: #0f172a; color: #f8fafc; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center; }
     .status-btn:hover { border-color: #38bdf8; background: #1e293b; }
     .status-btn.booked { border-color: #22c55e; color: #4ade80; }
@@ -46,13 +51,26 @@
 <div class="dialer-card" id="dialerCard">
   <div class="header">
     <div class="brand">Unikiq Dialer</div>
-    <div class="agent-tag">Sælger: <strong id="agentName">Lukas</strong></div>
+    <div class="agent-tag">Sælger: <strong>Lukas</strong></div>
+  </div>
+
+  <!-- Kampagne Vælger -->
+  <div class="field-group">
+    <label for="campaignSelect">Aktiv Kampagne</label>
+    <select id="campaignSelect" onchange="onCampaignChange()">
+      <option value="" disabled selected>Henter kampagner...</option>
+    </select>
+  </div>
+
+  <!-- Salgsscript / Instructions -->
+  <div class="script-box" id="scriptBox">
+    Vælg en kampagne for at se salgspitch / instruks.
   </div>
 
   <!-- Lead Kort -->
   <div class="lead-box">
-    <div class="company-name" id="companyName">Henter næste lead...</div>
-    <div class="contact-person" id="contactPerson">Vent venligst...</div>
+    <div class="company-name" id="companyName">Vælg kampagne ovenfor...</div>
+    <div class="contact-person" id="contactPerson">Ingen lead indlæst</div>
     <a href="#" id="phoneLink" class="phone-number">📞 -- -- -- --</a>
   </div>
 
@@ -80,40 +98,87 @@
 
 <script>
   // Opsætning af n8n Webhook Endpoints
+  const GET_CAMPAIGNS_WEBHOOK = 'https://n8n.unikiq.dk/webhook/dialer-get-campaigns';
   const GET_LEAD_WEBHOOK = 'https://n8n.unikiq.dk/webhook/dialer-get-lead';
   const SAVE_RESULT_WEBHOOK = 'https://n8n.unikiq.dk/webhook/dialer-save-result';
 
+  let campaignsList = [];
   let currentLead = null;
 
-  // Hent næste lead fra n8n/Postgres når siden indlæses
+  // Hent alle aktive kampagner når siden indlæses
   window.addEventListener('DOMContentLoaded', () => {
-    loadNextLead();
+    fetchCampaigns();
   });
 
+  async function fetchCampaigns() {
+    try {
+      const response = await fetch(GET_CAMPAIGNS_WEBHOOK);
+      if (response.ok) {
+        campaignsList = await response.json();
+        const select = document.getElementById('campaignSelect');
+        select.innerHTML = '';
+
+        if (campaignsList.length === 0) {
+          select.innerHTML = '<option>Ingen aktive kampagner</option>';
+          return;
+        }
+
+        campaignsList.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.innerText = `${c.name} (${c.client_name})`;
+          select.appendChild(opt);
+        });
+
+        // Vælg første kampagne automatisk
+        onCampaignChange();
+      }
+    } catch (err) {
+      console.error('Fejl ved hentning af kampagner:', err);
+      document.getElementById('scriptBox').innerText = 'Kunne ikke forbinde til n8n for kampagner.';
+    }
+  }
+
+  function onCampaignChange() {
+    const campaignId = document.getElementById('campaignSelect').value;
+    const selectedCampaign = campaignsList.find(c => c.id == campaignId);
+
+    if (selectedCampaign) {
+      document.getElementById('scriptBox').innerText = selectedCampaign.script_text || 'Intet script angivet for denne kampagne.';
+      loadNextLead();
+    }
+  }
+
   async function loadNextLead() {
+    const campaignId = document.getElementById('campaignSelect').value;
+    if (!campaignId) return;
+
     const card = document.getElementById('dialerCard');
     card.classList.add('loading');
     
     try {
-      const response = await fetch(GET_LEAD_WEBHOOK);
+      const response = await fetch(`${GET_LEAD_WEBHOOK}?campaign_id=${campaignId}`);
       if (response.ok) {
-        currentLead = await response.json();
-        document.getElementById('companyName').innerText = currentLead.company_name || 'Ingen virksomhed';
-        document.getElementById('contactPerson').innerText = currentLead.contact_person || 'Ingen kontaktperson';
-        
-        const phone = currentLead.phone || '';
-        const phoneLink = document.getElementById('phoneLink');
-        phoneLink.innerText = `📞 ${phone}`;
-        phoneLink.href = `tel:${phone}`;
-      } else {
-        document.getElementById('companyName').innerText = 'Ingen flere leads';
-        document.getElementById('contactPerson').innerText = 'Alle emner er ringet op!';
+        const data = await response.json();
+        if (data && data.id) {
+          currentLead = data;
+          document.getElementById('companyName').innerText = currentLead.company_name;
+          document.getElementById('contactPerson').innerText = currentLead.contact_person || 'Ingen kontaktperson';
+          
+          const phone = currentLead.phone || '';
+          const phoneLink = document.getElementById('phoneLink');
+          phoneLink.innerText = `📞 ${phone}`;
+          phoneLink.href = `tel:${phone}`;
+        } else {
+          currentLead = null;
+          document.getElementById('companyName').innerText = 'Ingen flere emner';
+          document.getElementById('contactPerson').innerText = 'Alle leads i denne kampagne er ringet op!';
+          document.getElementById('phoneLink').innerText = '📞 -- -- -- --';
+          document.getElementById('phoneLink').href = '#';
+        }
       }
     } catch (err) {
       console.error('Fejl ved hentning af lead:', err);
-      document.getElementById('companyName').innerText = 'Demotilstand (Netværksfejl)';
-      document.getElementById('contactPerson').innerText = 'Test virksomhed A/S';
-      document.getElementById('phoneLink').innerText = '📞 +45 12 34 56 78';
     } finally {
       card.classList.remove('loading');
       document.getElementById('callNotes').value = '';
@@ -125,19 +190,25 @@
     if (phone && phone !== '#') {
       window.location.href = phone;
     } else {
-      alert('Intet telefonnummer tilgængeligt!');
+      alert('Intet telefonnummer indlæst!');
     }
   }
 
   async function submitResult(status) {
+    if (!currentLead) {
+      alert('Der er intet aktivt lead at gemme resultat for.');
+      return;
+    }
+
+    const campaignId = document.getElementById('campaignSelect').value;
     const notes = document.getElementById('callNotes').value;
     const card = document.getElementById('dialerCard');
 
     card.classList.add('loading');
 
     const payload = {
-      lead_id: currentLead ? currentLead.id : null,
-      company_name: currentLead ? currentLead.company_name : 'Test Virksomhed',
+      campaign_id: parseInt(campaignId),
+      lead_id: currentLead.id,
       status: status,
       notes: notes,
       agent: 'Lukas'
@@ -151,7 +222,6 @@
       });
 
       if (response.ok) {
-        // Hent næste lead automatisk når resultatet er gemt
         loadNextLead();
       } else {
         alert('Kunne ikke gemme resultatet. Prøv igen.');
