@@ -103,10 +103,11 @@
       <h2 id="companyName" style="margin:0; font-size:20px;">Henter lead...</h2>
       <div id="contactPerson" style="color:#94a3b8; font-size:14px; margin-top:4px;"></div>
       
-      <!-- CVR & ANSATTE INFO -->
+      <!-- CVR, ANSATTE & ADRESSE INFO -->
       <div class="lead-info-pills">
         <span class="info-pill" id="cvrPill">CVR: -</span>
         <span class="info-pill" id="employeesPill" style="color:#a855f7;">Ansatte: -</span>
+        <span class="info-pill" id="addressPill" style="color:#eab308;">📍 Adresse: -</span>
       </div>
 
       <a id="phoneLink" href="#" class="phone-number">...</a>
@@ -146,8 +147,8 @@
   <!-- SEARCH TAB -->
   <div id="searchTab" style="display:none;">
     <div class="card">
-      <label style="font-size:12px; color:#38bdf8; font-weight:bold;">SØG EFTER FIRMA, CVR, TLF, PERSON ELLER NOTER</label>
-      <input type="text" id="searchInput" class="search-input" placeholder="Indtast søgeord (f.eks. CVR, firmanavn, tlf)..." oninput="handleSearch()">
+      <label style="font-size:12px; color:#38bdf8; font-weight:bold;">SØG EFTER FIRMA, CVR, ADRESSE, TLF, PERSON ELLER NOTER</label>
+      <input type="text" id="searchInput" class="search-input" placeholder="Indtast søgeord (f.eks. CVR, adresse, firmanavn, tlf)..." oninput="handleSearch()">
     </div>
     <div id="searchResultsList"><p style="color:#94a3b8;">Indtast et søgeord ovenfor for at finde et emne.</p></div>
   </div>
@@ -269,6 +270,7 @@
     document.getElementById('phoneLink').textContent = '...';
     document.getElementById('cvrPill').textContent = 'CVR: -';
     document.getElementById('employeesPill').textContent = 'Ansatte: -';
+    document.getElementById('addressPill').textContent = '📍 Adresse: -';
     document.getElementById('callNotes').value = '';
 
     try {
@@ -282,11 +284,14 @@
         document.getElementById('phoneLink').href = `tel:${data.phone}`;
         document.getElementById('callBtn').href = `tel:${data.phone}`;
 
-        // CVR og Ansatte felter
+        // CVR, Ansatte & Adresse felter
         const cvrVal = data.cvr || data.vat_number || data.cvr_number || 'Ikke angivet';
         const empVal = data.employees || data.antal_ansatte || data.employee_count || 'Ikke angivet';
+        const addrVal = data.address || data.adresse || 'Ikke angivet';
+
         document.getElementById('cvrPill').textContent = `CVR: ${cvrVal}`;
         document.getElementById('employeesPill').textContent = `Ansatte: ${empVal}`;
+        document.getElementById('addressPill').textContent = `📍 ${addrVal}`;
 
         if (data.notes) {
           document.getElementById('callNotes').value = data.notes;
@@ -538,9 +543,10 @@
       const contact = (item.contact_person || '').toLowerCase();
       const phone = (item.phone || '').toLowerCase();
       const cvr = (item.cvr || item.vat_number || '').toLowerCase();
+      const address = (item.address || item.adresse || '').toLowerCase();
       const notes = (item.notes || '').toLowerCase();
 
-      return company.includes(query) || contact.includes(query) || phone.includes(query) || cvr.includes(query) || notes.includes(query);
+      return company.includes(query) || contact.includes(query) || phone.includes(query) || cvr.includes(query) || address.includes(query) || notes.includes(query);
     });
 
     if (matches.length === 0) {
@@ -556,6 +562,7 @@
         <div class="appointment-date" style="color:#38bdf8;">STATUS: ${item.status || 'Ikke ringet'}</div>
         <strong style="font-size:16px;">${item.company_name}</strong> ${item.cvr ? '[CVR: ' + item.cvr + ']' : ''}<br>
         <span style="color:#94a3b8;">Kontakt: ${item.contact_person || 'Ikke angivet'}</span><br>
+        ${(item.address || item.adresse) ? '<span style="color:#eab308; font-size:13px;">📍 ' + (item.address || item.adresse) + '</span><br>' : ''}
         <a href="tel:${item.phone}" style="color:#4ade80; text-decoration:none; font-weight:bold;">📞 ${item.phone}</a><br>
         <small style="color:#cbd5e1;">Noter: ${item.notes || 'Ingen noter'}</small>
       `;
